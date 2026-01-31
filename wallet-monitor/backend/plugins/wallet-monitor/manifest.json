@@ -1,0 +1,30 @@
+{
+  "name": "wallet-monitor",
+  "version": "1.0.0",
+  "description": "区块链钱包监控插件，支持多链钱包监控、实时交易跟踪、智能合约交互监控、异常行为检测与告警",
+  "author": "Blockchain Monitor Team",
+  "main": "plugin.py",
+  "dependencies": [
+    "web3",
+    "solana-py",
+    "fastapi",
+    "uvicorn",
+    "sqlalchemy",
+    "pydantic"
+  ],
+  "supported_chains": [
+    "ethereum",
+    "bsc",
+    "polygon",
+    "solana"
+  ],
+  "features": [
+    "wallet_management",
+    "transaction_monitoring",
+    "contract_interaction_monitoring",
+    "anomaly_detection",
+    "alert_system"
+  ],
+  "api_prefix": "/api/plugins/wallet-monitor",
+  "status": "active"
+}

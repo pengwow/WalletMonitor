@@ -1,0 +1,15 @@
+.trae/rules/project_rules.md
+__pycache__/*
+*.pyc
+*/node_modules/*
+wallet-monitor/node_modules/
+wallet-monitor/venv
+.vscode/*
+docs/*
+wallet_monitor_plugin.egg-info
+venv
+.venv
+.vscode
+.trae/
+.trae/*
+docs

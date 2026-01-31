@@ -1,0 +1,14 @@
+{
+  "name": "wallet-monitor",
+  "version": "1.0.0",
+  "description": "区块链钱包监控系统插件",
+  "author": "Developer",
+  "main": "plugin.py",
+  "dependencies": [
+    "fastapi",
+    "uvicorn",
+    "python-dotenv",
+    "requests",
+    "python-multipart"
+  ]
+}

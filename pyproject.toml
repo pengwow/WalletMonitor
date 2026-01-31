@@ -1,0 +1,18 @@
+[project]
+name = "wallet-monitor-plugin"
+version = "0.1.0"
+description = "区块链钱包监控系统插件"
+authors = [{ name = "Developer", email = "developer@example.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi==0.104.1",
+    "uvicorn==0.24.0",
+    "python-dotenv==1.0.0",
+    "requests==2.31.0",
+    "python-multipart==0.0.6"
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+

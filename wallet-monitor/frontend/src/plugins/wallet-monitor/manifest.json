@@ -1,0 +1,42 @@
+{
+  "name": "wallet-monitor",
+  "version": "1.0.0",
+  "description": "区块链钱包监控插件，支持多链钱包监控、实时交易跟踪、智能合约交互监控、异常行为检测与告警",
+  "author": "Blockchain Monitor Team",
+  "main": "index.tsx",
+  "dependencies": [
+    "react",
+    "react-dom",
+    "react-router-dom",
+    "antd",
+    "echarts",
+    "zustand"
+  ],
+  "routes": [
+    {
+      "path": "/plugins/wallet-monitor/dashboard",
+      "name": "Dashboard"
+    },
+    {
+      "path": "/plugins/wallet-monitor/wallets",
+      "name": "钱包管理"
+    },
+    {
+      "path": "/plugins/wallet-monitor/transactions",
+      "name": "交易监控"
+    },
+    {
+      "path": "/plugins/wallet-monitor/contracts",
+      "name": "合约监控"
+    },
+    {
+      "path": "/plugins/wallet-monitor/alerts",
+      "name": "告警管理"
+    }
+  ],
+  "menu": {
+    "group": "区块链监控",
+    "order": 10
+  },
+  "status": "active"
+}

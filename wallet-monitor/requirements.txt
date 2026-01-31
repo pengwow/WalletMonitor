@@ -1,0 +1,27 @@
+# 区块链交互库
+web3==6.11.0
+solana==0.34.0
+# BSC和Polygon通过web3.py实现
+
+# 后端框架
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# 数据存储
+sqlalchemy==2.0.23
+redis==5.0.1
+
+# 数据验证
+pydantic==2.3.0
+pydantic-settings==2.0.3
+
+# 工具库
+python-dotenv==1.0.0
+requests==2.31.0
+python-multipart==0.0.6
+
+# 告警系统
+# 暂时移除aiogram，避免依赖冲突
+
+# 可选：消息队列
+pyzmq==25.1.1
