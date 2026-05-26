@@ -7,8 +7,15 @@ from ..data.analyzer import DataAnalyzer
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
-# 数据存储实例
-storage = DataStorage()
+# 数据存储实例（延迟初始化，由 plugin.py 先创建单例以确定正确 db_path）
+_storage = None
+
+
+def _get_storage() -> DataStorage:
+    global _storage
+    if _storage is None:
+        _storage = DataStorage()
+    return _storage
 
 
 class AlertResponse(BaseModel):
@@ -71,6 +78,7 @@ async def get_alerts(
     """
     获取告警列表
     """
+    storage = _get_storage()
     try:
         # 获取告警列表
         alerts = storage.get_alerts(
@@ -78,7 +86,7 @@ async def get_alerts(
             chain=chain,
             limit=limit
         )
-        
+
         # 构建响应
         responses = []
         for alert in alerts:
@@ -95,7 +103,7 @@ async def get_alerts(
                 resolved_at=alert["resolved_at"]
             )
             responses.append(response)
-        
+
         return responses
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取告警列表失败: {str(e)}")
@@ -134,10 +142,11 @@ async def get_alert_rules(enabled_only: bool = Query(True, description="是否�
     """
     获取告警规则列表
     """
+    storage = _get_storage()
     try:
         # 获取告警规则列表
         rules = storage.get_alert_rules(enabled_only=enabled_only)
-        
+
         # 构建响应
         responses = []
         for rule in rules:
@@ -152,7 +161,7 @@ async def get_alert_rules(enabled_only: bool = Query(True, description="是否�
                 updated_at=rule["updated_at"]
             )
             responses.append(response)
-        
+
         return responses
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取告警规则列表失败: {str(e)}")
@@ -163,6 +172,7 @@ async def create_alert_rule(rule: AlertRuleCreate):
     """
     创建告警规则
     """
+    storage = _get_storage()
     try:
         # 创建告警规则
         success = storage.add_alert_rule({
@@ -172,17 +182,17 @@ async def create_alert_rule(rule: AlertRuleCreate):
             "threshold": rule.threshold,
             "enabled": rule.enabled
         })
-        
+
         if not success:
             raise HTTPException(status_code=400, detail="创建告警规则失败")
-        
+
         # 获取创建的规则
         rules = storage.get_alert_rules(enabled_only=False)
         created_rule = next((r for r in rules if r["name"] == rule.name), None)
-        
+
         if not created_rule:
             raise HTTPException(status_code=404, detail="告警规则创建成功但未找到")
-        
+
         # 构建响应
         response = AlertRuleResponse(
             id=created_rule["id"],
@@ -194,7 +204,7 @@ async def create_alert_rule(rule: AlertRuleCreate):
             created_at=created_rule["created_at"],
             updated_at=created_rule["updated_at"]
         )
-        
+
         return response
     except HTTPException:
         raise
@@ -235,13 +245,14 @@ async def get_alert_patterns():
     """
     获取告警模式分析
     """
+    storage = _get_storage()
     try:
         # 获取所有告警
         alerts = storage.get_alerts()
-        
+
         # 分析告警模式
         analysis_result = DataAnalyzer.analyze_alert_patterns(alerts)
-        
+
         return {
             "success": True,
             "analysis": analysis_result
@@ -255,6 +266,7 @@ async def test_alert(wallet_address: str, chain: str, alert_type: str):
     """
     测试告警
     """
+    storage = _get_storage()
     try:
         # 创建测试告警
         alert = {
@@ -265,12 +277,12 @@ async def test_alert(wallet_address: str, chain: str, alert_type: str):
             "risk_level": "medium",
             "transaction_hash": None
         }
-        
+
         success = storage.add_alert(alert)
-        
+
         if not success:
             raise HTTPException(status_code=400, detail="创建测试告警失败")
-        
+
         return {
             "success": True,
             "message": "测试告警创建成功"

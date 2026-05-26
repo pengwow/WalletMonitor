@@ -3,22 +3,56 @@ import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import os
+import inspect
 
 
 class DataStorage:
     """
     数据存储类，用于存储和管理区块链数据
     """
-    
-    def __init__(self, db_path: str = "wallet_monitor.db"):
-        """
-        初始化数据存储
-        
-        Args:
-            db_path: 数据库文件路径
-        """
+
+    _instance = None
+
+    def __new__(cls, db_path: str = ""):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self, db_path: str = ""):
+        if self._initialized:
+            return
+        self._initialized = True
+
+        if not db_path:
+            # 默认使用插件目录下的绝对路径
+            db_path = self._default_db_path()
+
         self.db_path = db_path
         self._init_db()
+
+    @staticmethod
+    def _default_db_path() -> str:
+        """从调用栈推断插件目录，返回绝对路径的数据库文件路径"""
+        try:
+            frame = inspect.currentframe()
+            while frame:
+                filename = frame.f_code.co_filename
+                if "wallet_monitor" in filename and "storage.py" not in filename:
+                    # 向上回溯到 wallet_monitor 根目录（包含 plugin.py 的目录）
+                    plugin_dir = os.path.dirname(filename)
+                    while plugin_dir and not os.path.exists(os.path.join(plugin_dir, "plugin.py")):
+                        parent = os.path.dirname(plugin_dir)
+                        if parent == plugin_dir:
+                            break
+                        plugin_dir = parent
+                    return os.path.join(plugin_dir, "wallet_monitor.db")
+                frame = frame.f_back
+        finally:
+            del frame
+        # 回退到 storage.py 所在目录的父目录（wallet_monitor 根目录）
+        fallback_dir = os.path.dirname(os.path.dirname(__file__))
+        return os.path.join(fallback_dir, "wallet_monitor.db")
     
     def _init_db(self):
         """

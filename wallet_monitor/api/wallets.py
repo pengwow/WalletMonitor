@@ -8,8 +8,16 @@ from ..data.processor import DataProcessor
 
 router = APIRouter(prefix="/wallets", tags=["wallets"])
 
-# 数据存储实例
-storage = DataStorage()
+# 数据存储实例（延迟初始化，由 plugin.py 先创建单例以确定正确 db_path）
+_storage = None
+
+
+def _get_storage() -> DataStorage:
+    global _storage
+    if _storage is None:
+        _storage = DataStorage()
+    return _storage
+
 
 # 区块链实例缓存
 blockchain_instances = {}
@@ -54,15 +62,16 @@ async def create_wallet(wallet: WalletCreate):
     """
     创建钱包
     """
+    storage = _get_storage()
     try:
         # 标准化地址
         normalized_address = DataProcessor.normalize_address(wallet.address)
-        
+
         # 验证区块链类型
         supported_chains = BlockchainFactory.get_supported_chains()
         if wallet.chain not in supported_chains:
             raise HTTPException(status_code=400, detail=f"不支持的区块链类型: {wallet.chain}")
-        
+
         # 创建钱包
         success = storage.add_wallet(
             address=normalized_address,
@@ -70,24 +79,24 @@ async def create_wallet(wallet: WalletCreate):
             name=wallet.name,
             description=wallet.description
         )
-        
+
         if not success:
             raise HTTPException(status_code=400, detail="创建钱包失败")
-        
+
         # 获取钱包信息
         wallets = storage.get_wallets(chain=wallet.chain)
         created_wallet = next((w for w in wallets if w["address"] == normalized_address), None)
-        
+
         if not created_wallet:
             raise HTTPException(status_code=404, detail="钱包创建成功但未找到")
-        
+
         # 获取钱包余额
         if wallet.chain not in blockchain_instances:
             blockchain_instances[wallet.chain] = BlockchainFactory.create_blockchain(wallet.chain)
-        
+
         blockchain = blockchain_instances[wallet.chain]
         balance = blockchain.get_balance(normalized_address) if blockchain else 0.0
-        
+
         # 构建响应
         response = WalletResponse(
             id=created_wallet["id"],
@@ -100,7 +109,7 @@ async def create_wallet(wallet: WalletCreate):
             updated_at=created_wallet["updated_at"],
             balance=balance
         )
-        
+
         return response
     except HTTPException:
         raise
@@ -113,20 +122,21 @@ async def get_wallets(chain: Optional[str] = None):
     """
     获取钱包列表
     """
+    storage = _get_storage()
     try:
         # 获取钱包列表
         wallets = storage.get_wallets(chain=chain)
-        
+
         # 构建响应
         responses = []
         for wallet in wallets:
             # 获取钱包余额
             if wallet["chain"] not in blockchain_instances:
                 blockchain_instances[wallet["chain"]] = BlockchainFactory.create_blockchain(wallet["chain"])
-            
+
             blockchain = blockchain_instances[wallet["chain"]]
             balance = blockchain.get_balance(wallet["address"]) if blockchain else 0.0
-            
+
             response = WalletResponse(
                 id=wallet["id"],
                 address=wallet["address"],
@@ -139,7 +149,7 @@ async def get_wallets(chain: Optional[str] = None):
                 balance=balance
             )
             responses.append(response)
-        
+
         return responses
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取钱包列表失败: {str(e)}")
@@ -150,21 +160,22 @@ async def get_wallet(wallet_id: int):
     """
     获取钱包详情
     """
+    storage = _get_storage()
     try:
         # 获取所有钱包
         wallets = storage.get_wallets()
         wallet = next((w for w in wallets if w["id"] == wallet_id), None)
-        
+
         if not wallet:
             raise HTTPException(status_code=404, detail="钱包不存在")
-        
+
         # 获取钱包余额
         if wallet["chain"] not in blockchain_instances:
             blockchain_instances[wallet["chain"]] = BlockchainFactory.create_blockchain(wallet["chain"])
-        
+
         blockchain = blockchain_instances[wallet["chain"]]
         balance = blockchain.get_balance(wallet["address"]) if blockchain else 0.0
-        
+
         # 构建响应
         response = WalletResponse(
             id=wallet["id"],
@@ -177,7 +188,7 @@ async def get_wallet(wallet_id: int):
             updated_at=wallet["updated_at"],
             balance=balance
         )
-        
+
         return response
     except HTTPException:
         raise
@@ -190,24 +201,25 @@ async def update_wallet(wallet_id: int, wallet_update: WalletUpdate):
     """
     更新钱包
     """
+    storage = _get_storage()
     try:
         # 获取钱包
         wallets = storage.get_wallets()
         wallet = next((w for w in wallets if w["id"] == wallet_id), None)
-        
+
         if not wallet:
             raise HTTPException(status_code=404, detail="钱包不存在")
-        
+
         # 这里简化处理，实际需要实现更新逻辑
         # 暂时返回原钱包信息
-        
+
         # 获取钱包余额
         if wallet["chain"] not in blockchain_instances:
             blockchain_instances[wallet["chain"]] = BlockchainFactory.create_blockchain(wallet["chain"])
-        
+
         blockchain = blockchain_instances[wallet["chain"]]
         balance = blockchain.get_balance(wallet["address"]) if blockchain else 0.0
-        
+
         # 构建响应
         response = WalletResponse(
             id=wallet["id"],
@@ -220,7 +232,7 @@ async def update_wallet(wallet_id: int, wallet_update: WalletUpdate):
             updated_at=wallet["updated_at"],
             balance=balance
         )
-        
+
         return response
     except HTTPException:
         raise
@@ -246,21 +258,22 @@ async def get_wallet_balance(wallet_id: int):
     """
     获取钱包余额
     """
+    storage = _get_storage()
     try:
         # 获取钱包
         wallets = storage.get_wallets()
         wallet = next((w for w in wallets if w["id"] == wallet_id), None)
-        
+
         if not wallet:
             raise HTTPException(status_code=404, detail="钱包不存在")
-        
+
         # 获取钱包余额
         if wallet["chain"] not in blockchain_instances:
             blockchain_instances[wallet["chain"]] = BlockchainFactory.create_blockchain(wallet["chain"])
-        
+
         blockchain = blockchain_instances[wallet["chain"]]
         balance = blockchain.get_balance(wallet["address"]) if blockchain else 0.0
-        
+
         return {
             "wallet_id": wallet_id,
             "address": wallet["address"],
