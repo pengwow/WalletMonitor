@@ -1,0 +1,16 @@
+{
+  "name": "wallet_monitor",
+  "version": "1.0.0",
+  "description": "多链区块链钱包监控系统，支持以太坊、BSC、Polygon、Solana的钱包追踪、交易监控和智能告警",
+  "author": "WalletMonitor Team",
+  "main": "plugin.py",
+  "load_type": "hot",
+  "permissions": [
+    "database:read",
+    "database:write",
+    "network:outbound"
+  ],
+  "config_schema": null,
+  "frontend_entry": null,
+  "dependencies": []
+}
