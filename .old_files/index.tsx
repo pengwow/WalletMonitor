@@ -4,6 +4,7 @@ import TransactionMonitor from './components/TransactionMonitor';
 import AlertManagement from './components/AlertManagement';
 import Dashboard from './components/Dashboard';
 import WhaleMonitor from './components/WhaleMonitor';
+import WhaleWatcher from './components/WhaleWatcher';
 
 // 假设的插件基类
 class PluginBase {
@@ -39,7 +40,7 @@ export class WalletMonitorPlugin extends PluginBase {
   constructor() {
     super(
       'wallet-monitor',
-      '1.0.0',
+      '1.1.0',
       '区块链钱包监控插件 + 巨鲸监控',
       'Blockchain Monitor Team'
     );
@@ -53,12 +54,16 @@ export class WalletMonitorPlugin extends PluginBase {
       group: '区块链监控',
       items: [
         {
+          path: '/plugins/wallet-monitor/watcher',
+          name: '🐋 HypeWatcher'
+        },
+        {
           path: '/plugins/wallet-monitor/dashboard',
           name: 'Dashboard'
         },
         {
           path: '/plugins/wallet-monitor/whales',
-          name: '🐋 巨鲸监控'
+          name: '巨鲸监控'
         },
         {
           path: '/plugins/wallet-monitor/wallets',
@@ -76,6 +81,11 @@ export class WalletMonitorPlugin extends PluginBase {
     });
     
     // 添加路由
+    this.addRoute({
+      path: '/plugins/wallet-monitor/watcher',
+      element: <WhaleWatcher />
+    });
+
     this.addRoute({
       path: '/plugins/wallet-monitor/dashboard',
       element: <Dashboard />

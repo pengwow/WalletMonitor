@@ -164,11 +164,13 @@ class MonitorState:
         )
 
     def to_dict(self) -> dict:
-        from .formatter import get_position_row
+        from .formatter import get_position_row, get_risk_summary
+        sorted_pos = self.sorted_positions
         return {
             "coin": self.coin,
             "stats": self.stats.to_dict(),
-            "positions": [get_position_row(p) for p in self.sorted_positions],
+            "positions": [get_position_row(p) for p in sorted_pos],
+            "risk": get_risk_summary(sorted_pos),
             "lastUpdate": self.last_update,
             "sortKey": self.sort_key,
             "sortReverse": self.sort_reverse,

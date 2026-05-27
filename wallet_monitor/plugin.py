@@ -23,7 +23,13 @@ class WalletMonitorPlugin(PluginBase):
 
     def _init_modules(self):
         import os
-        db_path = os.path.join(os.path.dirname(__file__), "wallet_monitor.db")
+        # 使用插件数据目录存放数据库，避免污染源码目录
+        plugin_data_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data"
+        )
+        os.makedirs(plugin_data_dir, exist_ok=True)
+        db_path = os.path.join(plugin_data_dir, "wallet_monitor.db")
         self.storage = DataStorage(db_path=db_path)
         self.alert_engine = AlertRuleEngine()
         self.blockchain_factory = BlockchainFactory()

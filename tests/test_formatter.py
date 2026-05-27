@@ -12,6 +12,7 @@ from wallet_monitor.whale_monitor.formatter import (
     get_liq_text,
     get_position_row,
     get_long_short_bar,
+    get_risk_summary,
 )
 from tests.conftest import SAMPLE_API_POSITION, SAMPLE_SHORT_POSITION
 
@@ -217,3 +218,46 @@ class TestGetLongShortBar:
 
         assert bar["width"] == 20
         assert bar["long_bars"] + bar["short_bars"] == 20
+
+
+class TestGetRiskSummary:
+
+    def test_empty(self):
+        result = get_risk_summary([])
+        assert result["at_risk_count"] == 0
+        assert result["high_lev_count"] == 0
+        assert result["total_pnl"] == 0.0
+
+    def test_no_risk(self):
+        positions = [
+            WhalePosition(leverage=5, liq_price=50000, entry_price=100000, position_value_usd=1000),
+            WhalePosition(leverage=3, liq_price=20000, entry_price=100000, position_value_usd=2000),
+        ]
+        result = get_risk_summary(positions)
+        assert result["at_risk_count"] == 0
+        assert result["high_lev_count"] == 0
+        assert result["total_pnl"] == 0.0
+
+    def test_with_risk(self):
+        positions = [
+            WhalePosition(leverage=25, liq_price=98000, entry_price=100000, position_value_usd=5000, unrealized_pnl=-100),
+            WhalePosition(leverage=5, liq_price=50000, entry_price=100000, position_value_usd=2000, unrealized_pnl=50),
+        ]
+        result = get_risk_summary(positions)
+        assert result["at_risk_count"] == 1
+        assert result["at_risk_value"] == 5000
+        assert result["high_lev_count"] == 1
+        assert result["total_pnl"] == -50
+
+    def test_leverage_dist(self):
+        positions = [
+            WhalePosition(leverage=3),
+            WhalePosition(leverage=8),
+            WhalePosition(leverage=15),
+            WhalePosition(leverage=25),
+        ]
+        result = get_risk_summary(positions)
+        assert result["leverage_dist"]["<=5x"] == 1
+        assert result["leverage_dist"]["5-10x"] == 1
+        assert result["leverage_dist"]["10-20x"] == 1
+        assert result["leverage_dist"][">=20x"] == 1

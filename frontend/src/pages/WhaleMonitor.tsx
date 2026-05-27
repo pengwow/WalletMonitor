@@ -64,6 +64,15 @@ interface SnapshotData {
   };
   bar: BarData;
   positions: PositionRow[];
+  risk: {
+    at_risk_count: number;
+    at_risk_value: number;
+    at_risk_value_str: string;
+    high_lev_count: number;
+    leverage_dist: Record<string, number>;
+    total_pnl: number;
+    total_pnl_str: string;
+  };
   positionCount: number;
   lastUpdate: string;
   sortKey: string;
@@ -379,10 +388,32 @@ const WhaleMonitor: React.FC = () => {
                 {renderLongShortBar()}
                 {renderPctLine()}
               </div>
-              <div style={{ marginTop: 8 }}>
-                <Text type="secondary">
-                  24h Liquidation: <Tag>N/A</Tag> (接口暂不可用)
+              <div style={{ marginTop: 8, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                <Text>
+                  <Text strong>⚠ Liq Risk: </Text>
+                  {snapshot?.risk?.at_risk_count ? (
+                    <Tag color="error">{snapshot.risk.at_risk_count} pos ({snapshot.risk.at_risk_value_str})</Tag>
+                  ) : (
+                    <Tag color="success">None</Tag>
+                  )}
                 </Text>
+                <Text>
+                  <Text strong>{'🔴'} {'≥20x'}: </Text>
+                  <Tag color={snapshot?.risk?.high_lev_count ? 'error' : 'default'}>
+                    {snapshot?.risk?.high_lev_count || 0}
+                  </Tag>
+                </Text>
+                <Text>
+                  <Text strong>Σ PnL: </Text>
+                  <Text type={snapshot?.risk?.total_pnl && snapshot.risk.total_pnl >= 0 ? 'success' : 'danger'}>
+                    {snapshot?.risk?.total_pnl_str || '$0'}
+                  </Text>
+                </Text>
+                {snapshot?.risk?.leverage_dist && (
+                  <Text type="secondary">
+                    {Object.entries(snapshot.risk.leverage_dist).map(([k, v]) => `${k}:${v}`).join('  ')}
+                  </Text>
+                )}
               </div>
             </Card>
 

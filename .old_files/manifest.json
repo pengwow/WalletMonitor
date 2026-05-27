@@ -14,6 +14,10 @@
   ],
   "routes": [
     {
+      "path": "/plugins/wallet-monitor/watcher",
+      "name": "HypeWatcher"
+    },
+    {
       "path": "/plugins/wallet-monitor/dashboard",
       "name": "Dashboard"
     },

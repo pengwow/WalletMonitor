@@ -115,3 +115,43 @@ def get_long_short_bar(long_count: int, short_count: int, width: int = 40) -> di
         "short_bars": short_bars,
         "width": width,
     }
+
+
+def get_risk_summary(positions: list[WhalePosition]) -> dict:
+    if not positions:
+        return {
+            "at_risk_count": 0,
+            "at_risk_value": 0.0,
+            "at_risk_value_str": "$0",
+            "high_lev_count": 0,
+            "leverage_dist": {},
+            "total_pnl": 0.0,
+            "total_pnl_str": "$0",
+        }
+
+    at_risk = [p for p in positions if p.liq_risk]
+    high_lev = [p for p in positions if p.leverage >= 20]
+    at_risk_value = sum(p.position_value_usd for p in at_risk)
+
+    lev_buckets = {"<=5x": 0, "5-10x": 0, "10-20x": 0, ">=20x": 0}
+    for p in positions:
+        if p.leverage <= 5:
+            lev_buckets["<=5x"] += 1
+        elif p.leverage <= 10:
+            lev_buckets["5-10x"] += 1
+        elif p.leverage <= 20:
+            lev_buckets["10-20x"] += 1
+        else:
+            lev_buckets[">=20x"] += 1
+
+    total_pnl = sum(p.unrealized_pnl for p in positions)
+
+    return {
+        "at_risk_count": len(at_risk),
+        "at_risk_value": at_risk_value,
+        "at_risk_value_str": format_usd_unsigned(at_risk_value),
+        "high_lev_count": len(high_lev),
+        "leverage_dist": lev_buckets,
+        "total_pnl": total_pnl,
+        "total_pnl_str": format_usd(total_pnl),
+    }
