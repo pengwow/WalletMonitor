@@ -1,3 +1,5 @@
+import React from 'react';
+import { WalletOutlined } from '@ant-design/icons';
 import App from './App';
 
 const routes = [
@@ -12,6 +14,7 @@ const menuItems = [
   {
     key: '/plugins/wallet-monitor',
     label: '钱包监控',
+    icon: React.createElement(WalletOutlined),
     pluginName: 'wallet_monitor',
   },
 ];
