@@ -20,9 +20,9 @@ for arg in "$@"; do
     esac
 done
 
-MANIFEST="manifest.json"
+MANIFEST="wallet_monitor/manifest.json"
 if [ ! -f "$MANIFEST" ]; then
-    error "manifest.json 不存在"
+    error "manifest.json 不存在: $MANIFEST"
 fi
 
 PLUGIN_NAME=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['name'])" "$MANIFEST")
@@ -72,9 +72,8 @@ rsync -a \
     --exclude='*.egg-info' \
     "$SCRIPT_DIR/wallet_monitor/" "$STAGING/"
 
-# 复制根目录的 manifest.json 和 build.sh
-cp "$SCRIPT_DIR/manifest.json" "$STAGING/"
-cp "$SCRIPT_DIR/build.sh" "$STAGING/"
+# 复制 manifest.json
+cp "$SCRIPT_DIR/wallet_monitor/manifest.json" "$STAGING/"
 
 (cd "$STAGING" && zip -r "$ZIP_PATH" . -q)
 
