@@ -15,4 +15,5 @@ venv/
 .vscode/
 docs/
 node_modules/
-.omo/*
+.omo/
+.old_files/
