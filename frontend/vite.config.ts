@@ -5,8 +5,14 @@ export default defineConfig({
   plugins: [
     react(),
   ],
-  define: {
-    'process.env.NODE_ENV': JSON.stringify('production'),
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     target: 'esnext',
@@ -20,8 +26,6 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      // 将 react 和 react-dom 作为外部依赖
-      // 插件运行时复用 QuantCell 主应用暴露的 window.React / window.ReactDOM
       external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'],
       output: {
         globals: {

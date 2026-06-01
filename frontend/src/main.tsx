@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom/client';
 import { WalletOutlined } from '@ant-design/icons';
 import App from './App';
 
@@ -19,6 +20,7 @@ const menuItems = [
   },
 ];
 
+// 插件模式导出
 export function registerPlugin() {
   return {
     register(context: any) {
@@ -32,4 +34,15 @@ export function registerPlugin() {
     getRoutes: () => routes,
     getMenuItems: () => menuItems,
   };
+}
+
+// 独立运行模式
+const rootEl = document.getElementById('root');
+if (rootEl && !rootEl.getAttribute('data-plugin-mode')) {
+  const root = ReactDOM.createRoot(rootEl);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
 }

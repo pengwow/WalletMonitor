@@ -1,14 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
+import logging
+import traceback
 
 from ..blockchain.factory import BlockchainFactory
 from ..data.storage import DataStorage
 from ..data.processor import DataProcessor
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/wallets", tags=["wallets"])
 
-# 数据存储实例（延迟初始化，由 plugin.py 先创建单例以确定正确 db_path）
+# 数据存储实例（延迟初始化）
 _storage = None
 
 
@@ -21,6 +25,20 @@ def _get_storage() -> DataStorage:
 
 # 区块链实例缓存
 blockchain_instances = {}
+
+
+def _get_balance_safe(chain: str, address: str) -> float:
+    """安全获取余额，失败返回 0.0"""
+    try:
+        if chain not in blockchain_instances:
+            blockchain_instances[chain] = BlockchainFactory.create_blockchain(chain)
+        blockchain = blockchain_instances[chain]
+        if blockchain is None:
+            return 0.0
+        return blockchain.get_balance(address) or 0.0
+    except Exception as e:
+        logger.warning(f"获取余额失败 ({chain}:{address}): {e}")
+        return 0.0
 
 
 class WalletCreate(BaseModel):
@@ -90,12 +108,8 @@ async def create_wallet(wallet: WalletCreate):
         if not created_wallet:
             raise HTTPException(status_code=404, detail="钱包创建成功但未找到")
 
-        # 获取钱包余额
-        if wallet.chain not in blockchain_instances:
-            blockchain_instances[wallet.chain] = BlockchainFactory.create_blockchain(wallet.chain)
-
-        blockchain = blockchain_instances[wallet.chain]
-        balance = blockchain.get_balance(normalized_address) if blockchain else 0.0
+        # 安全获取余额
+        balance = _get_balance_safe(wallet.chain, normalized_address)
 
         # 构建响应
         response = WalletResponse(
@@ -114,6 +128,7 @@ async def create_wallet(wallet: WalletCreate):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"创建钱包异常: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"创建钱包失败: {str(e)}")
 
 
@@ -130,12 +145,8 @@ async def get_wallets(chain: Optional[str] = None):
         # 构建响应
         responses = []
         for wallet in wallets:
-            # 获取钱包余额
-            if wallet["chain"] not in blockchain_instances:
-                blockchain_instances[wallet["chain"]] = BlockchainFactory.create_blockchain(wallet["chain"])
-
-            blockchain = blockchain_instances[wallet["chain"]]
-            balance = blockchain.get_balance(wallet["address"]) if blockchain else 0.0
+            # 安全获取余额
+            balance = _get_balance_safe(wallet["chain"], wallet["address"])
 
             response = WalletResponse(
                 id=wallet["id"],
@@ -152,6 +163,7 @@ async def get_wallets(chain: Optional[str] = None):
 
         return responses
     except Exception as e:
+        logger.error(f"获取钱包列表异常: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"获取钱包列表失败: {str(e)}")
 
 
@@ -169,12 +181,8 @@ async def get_wallet(wallet_id: int):
         if not wallet:
             raise HTTPException(status_code=404, detail="钱包不存在")
 
-        # 获取钱包余额
-        if wallet["chain"] not in blockchain_instances:
-            blockchain_instances[wallet["chain"]] = BlockchainFactory.create_blockchain(wallet["chain"])
-
-        blockchain = blockchain_instances[wallet["chain"]]
-        balance = blockchain.get_balance(wallet["address"]) if blockchain else 0.0
+        # 安全获取余额
+        balance = _get_balance_safe(wallet["chain"], wallet["address"])
 
         # 构建响应
         response = WalletResponse(
@@ -193,6 +201,7 @@ async def get_wallet(wallet_id: int):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"获取钱包详情异常: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"获取钱包详情失败: {str(e)}")
 
 
@@ -213,12 +222,8 @@ async def update_wallet(wallet_id: int, wallet_update: WalletUpdate):
         # 这里简化处理，实际需要实现更新逻辑
         # 暂时返回原钱包信息
 
-        # 获取钱包余额
-        if wallet["chain"] not in blockchain_instances:
-            blockchain_instances[wallet["chain"]] = BlockchainFactory.create_blockchain(wallet["chain"])
-
-        blockchain = blockchain_instances[wallet["chain"]]
-        balance = blockchain.get_balance(wallet["address"]) if blockchain else 0.0
+        # 安全获取余额
+        balance = _get_balance_safe(wallet["chain"], wallet["address"])
 
         # 构建响应
         response = WalletResponse(
@@ -237,6 +242,7 @@ async def update_wallet(wallet_id: int, wallet_update: WalletUpdate):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"更新钱包异常: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"更新钱包失败: {str(e)}")
 
 
@@ -267,12 +273,8 @@ async def get_wallet_balance(wallet_id: int):
         if not wallet:
             raise HTTPException(status_code=404, detail="钱包不存在")
 
-        # 获取钱包余额
-        if wallet["chain"] not in blockchain_instances:
-            blockchain_instances[wallet["chain"]] = BlockchainFactory.create_blockchain(wallet["chain"])
-
-        blockchain = blockchain_instances[wallet["chain"]]
-        balance = blockchain.get_balance(wallet["address"]) if blockchain else 0.0
+        # 安全获取余额
+        balance = _get_balance_safe(wallet["chain"], wallet["address"])
 
         return {
             "wallet_id": wallet_id,
@@ -283,4 +285,5 @@ async def get_wallet_balance(wallet_id: int):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"获取钱包余额异常: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"获取钱包余额失败: {str(e)}")
