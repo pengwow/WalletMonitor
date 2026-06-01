@@ -114,10 +114,27 @@ async def get_alert(alert_id: int):
     """
     获取告警详情
     """
+    storage = _get_storage()
     try:
-        # 这里简化处理，实际需要根据告警ID查询
-        # 暂时返回模拟数据
-        raise HTTPException(status_code=404, detail="告警不存在")
+        alert = storage.get_alert_by_id(alert_id)
+
+        if not alert:
+            raise HTTPException(status_code=404, detail="告警不存在")
+
+        response = AlertResponse(
+            id=alert["id"],
+            wallet_address=alert["wallet_address"],
+            chain=alert["chain"],
+            alert_type=alert["alert_type"],
+            message=alert["message"],
+            risk_level=alert["risk_level"],
+            transaction_hash=alert.get("transaction_hash"),
+            status=alert["status"],
+            created_at=alert["created_at"],
+            resolved_at=alert.get("resolved_at")
+        )
+
+        return response
     except HTTPException:
         raise
     except Exception as e:
@@ -129,10 +146,21 @@ async def resolve_alert(alert_id: int):
     """
     解决告警
     """
+    storage = _get_storage()
     try:
-        # 这里简化处理，实际需要实现解决告警逻辑
-        # 暂时返回成功
+        alert = storage.get_alert_by_id(alert_id)
+
+        if not alert:
+            raise HTTPException(status_code=404, detail="告警不存在")
+
+        success = storage.resolve_alert(alert_id)
+
+        if not success:
+            raise HTTPException(status_code=400, detail="解决告警失败")
+
         return {"success": True, "message": "告警解决成功"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"解决告警失败: {str(e)}")
 
@@ -217,10 +245,41 @@ async def update_alert_rule(rule_id: int, rule_update: AlertRuleUpdate):
     """
     更新告警规则
     """
+    storage = _get_storage()
     try:
-        # 这里简化处理，实际需要实现更新逻辑
-        # 暂时返回原规则信息
-        raise HTTPException(status_code=404, detail="告警规则不存在")
+        rule = storage.get_alert_rule_by_id(rule_id)
+
+        if not rule:
+            raise HTTPException(status_code=404, detail="告警规则不存在")
+
+        success = storage.update_alert_rule(
+            rule_id=rule_id,
+            name=rule_update.name,
+            description=rule_update.description,
+            threshold=rule_update.threshold,
+            enabled=rule_update.enabled
+        )
+
+        if not success:
+            raise HTTPException(status_code=400, detail="更新告警规则失败")
+
+        updated_rule = storage.get_alert_rule_by_id(rule_id)
+
+        if not updated_rule:
+            raise HTTPException(status_code=404, detail="更新后未找到告警规则")
+
+        response = AlertRuleResponse(
+            id=updated_rule["id"],
+            name=updated_rule["name"],
+            description=updated_rule["description"],
+            rule_type=updated_rule["rule_type"],
+            threshold=updated_rule["threshold"],
+            enabled=bool(updated_rule["enabled"]),
+            created_at=updated_rule["created_at"],
+            updated_at=updated_rule["updated_at"]
+        )
+
+        return response
     except HTTPException:
         raise
     except Exception as e:
@@ -232,10 +291,21 @@ async def delete_alert_rule(rule_id: int):
     """
     删除告警规则
     """
+    storage = _get_storage()
     try:
-        # 这里简化处理，实际需要实现删除逻辑
-        # 暂时返回成功
+        rule = storage.get_alert_rule_by_id(rule_id)
+
+        if not rule:
+            raise HTTPException(status_code=404, detail="告警规则不存在")
+
+        success = storage.delete_alert_rule(rule_id)
+
+        if not success:
+            raise HTTPException(status_code=400, detail="删除告警规则失败")
+
         return {"success": True, "message": "告警规则删除成功"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"删除告警规则失败: {str(e)}")
 

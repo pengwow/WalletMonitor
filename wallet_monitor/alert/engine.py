@@ -1,7 +1,6 @@
 from typing import List, Dict, Any, Optional
 import logging
 
-# 配置日志
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - alert-engine - %(levelname)s - %(message)s'
@@ -10,15 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class AlertRuleEngine:
-    """
-    告警规则引擎，用于管理和执行告警规则
-    """
-    
     def __init__(self):
-        """
-        初始化告警规则引擎
-        """
         self.rules = []
+        self._notifier = None
         self.load_rules()
     
     def load_rules(self):
@@ -203,16 +196,22 @@ class AlertRuleEngine:
             logger.error(f"评估异常规则失败: {e}")
             return None
     
+    def _get_notifier(self):
+        if self._notifier is None:
+            from .notifier import get_notifier
+            self._notifier = get_notifier()
+        return self._notifier
+
     def add_alert(self, alert: Dict[str, Any]) -> bool:
-        """
-        添加告警
-        """
         try:
             from ..data.storage import DataStorage
             storage = DataStorage()
             success = storage.add_alert(alert)
             if success:
                 logger.info(f"添加告警成功: {alert.get('message')}")
+                notifier = self._get_notifier()
+                if notifier._channels:
+                    notifier.notify(alert)
             else:
                 logger.error(f"添加告警失败: {alert.get('message')}")
             return success

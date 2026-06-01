@@ -212,29 +212,39 @@ async def update_wallet(wallet_id: int, wallet_update: WalletUpdate):
     """
     storage = _get_storage()
     try:
-        # 获取钱包
         wallets = storage.get_wallets()
         wallet = next((w for w in wallets if w["id"] == wallet_id), None)
 
         if not wallet:
             raise HTTPException(status_code=404, detail="钱包不存在")
 
-        # 这里简化处理，实际需要实现更新逻辑
-        # 暂时返回原钱包信息
+        success = storage.update_wallet(
+            wallet_id=wallet_id,
+            name=wallet_update.name,
+            description=wallet_update.description,
+            is_active=wallet_update.is_active
+        )
 
-        # 安全获取余额
-        balance = _get_balance_safe(wallet["chain"], wallet["address"])
+        if not success:
+            raise HTTPException(status_code=400, detail="更新钱包失败")
 
-        # 构建响应
+        updated_wallets = storage.get_wallets()
+        updated_wallet = next((w for w in updated_wallets if w["id"] == wallet_id), None)
+
+        if not updated_wallet:
+            raise HTTPException(status_code=404, detail="更新后未找到钱包")
+
+        balance = _get_balance_safe(updated_wallet["chain"], updated_wallet["address"])
+
         response = WalletResponse(
-            id=wallet["id"],
-            address=wallet["address"],
-            chain=wallet["chain"],
-            name=wallet_update.name or wallet["name"],
-            description=wallet_update.description or wallet["description"],
-            is_active=wallet_update.is_active if wallet_update.is_active is not None else bool(wallet["is_active"]),
-            created_at=wallet["created_at"],
-            updated_at=wallet["updated_at"],
+            id=updated_wallet["id"],
+            address=updated_wallet["address"],
+            chain=updated_wallet["chain"],
+            name=updated_wallet["name"],
+            description=updated_wallet["description"],
+            is_active=bool(updated_wallet["is_active"]),
+            created_at=updated_wallet["created_at"],
+            updated_at=updated_wallet["updated_at"],
             balance=balance
         )
 
@@ -251,10 +261,22 @@ async def delete_wallet(wallet_id: int):
     """
     删除钱包
     """
+    storage = _get_storage()
     try:
-        # 这里简化处理，实际需要实现删除逻辑
-        # 暂时返回成功
+        wallets = storage.get_wallets()
+        wallet = next((w for w in wallets if w["id"] == wallet_id), None)
+
+        if not wallet:
+            raise HTTPException(status_code=404, detail="钱包不存在")
+
+        success = storage.delete_wallet(wallet_id)
+
+        if not success:
+            raise HTTPException(status_code=400, detail="删除钱包失败")
+
         return {"success": True, "message": "钱包删除成功"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"删除钱包失败: {str(e)}")
 

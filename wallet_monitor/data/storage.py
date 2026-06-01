@@ -423,6 +423,234 @@ class DataStorage:
             print(f"获取告警规则列表失败: {e}")
             return []
     
+    def update_wallet(self, wallet_id: int, name: Optional[str] = None, description: Optional[str] = None, is_active: Optional[bool] = None) -> bool:
+        """
+        更新钱包
+        
+        Args:
+            wallet_id: 钱包ID
+            name: 钱包名称
+            description: 钱包描述
+            is_active: 是否激活
+            
+        Returns:
+            是否更新成功
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # 构建动态更新语句
+            updates = []
+            params = []
+            
+            if name is not None:
+                updates.append("name = ?")
+                params.append(name)
+            if description is not None:
+                updates.append("description = ?")
+                params.append(description)
+            if is_active is not None:
+                updates.append("is_active = ?")
+                params.append(1 if is_active else 0)
+            
+            if not updates:
+                conn.close()
+                return False
+            
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            params.append(wallet_id)
+            
+            query = f"UPDATE wallets SET {', '.join(updates)} WHERE id = ?"
+            cursor.execute(query, params)
+            
+            conn.commit()
+            success = cursor.rowcount > 0
+            conn.close()
+            return success
+        except Exception as e:
+            print(f"更新钱包失败: {e}")
+            return False
+    
+    def delete_wallet(self, wallet_id: int) -> bool:
+        """
+        删除钱包（软删除，设置is_active=0）
+        
+        Args:
+            wallet_id: 钱包ID
+            
+        Returns:
+            是否删除成功
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                "UPDATE wallets SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (wallet_id,)
+            )
+            
+            conn.commit()
+            success = cursor.rowcount > 0
+            conn.close()
+            return success
+        except Exception as e:
+            print(f"删除钱包失败: {e}")
+            return False
+    
+    def resolve_alert(self, alert_id: int) -> bool:
+        """
+        解决告警
+        
+        Args:
+            alert_id: 告警ID
+            
+        Returns:
+            是否解决成功
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                "UPDATE alerts SET status = 'resolved', resolved_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (alert_id,)
+            )
+            
+            conn.commit()
+            success = cursor.rowcount > 0
+            conn.close()
+            return success
+        except Exception as e:
+            print(f"解决告警失败: {e}")
+            return False
+    
+    def get_alert_by_id(self, alert_id: int) -> Optional[Dict[str, Any]]:
+        """
+        根据ID获取告警
+        
+        Args:
+            alert_id: 告警ID
+            
+        Returns:
+            告警数据，不存在返回None
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT * FROM alerts WHERE id = ?", (alert_id,))
+            alert = cursor.fetchone()
+            conn.close()
+            
+            return dict(alert) if alert else None
+        except Exception as e:
+            print(f"获取告警失败: {e}")
+            return None
+    
+    def update_alert_rule(self, rule_id: int, name: Optional[str] = None, description: Optional[str] = None, threshold: Optional[float] = None, enabled: Optional[bool] = None) -> bool:
+        """
+        更新告警规则
+        
+        Args:
+            rule_id: 规则ID
+            name: 规则名称
+            description: 规则描述
+            threshold: 阈值
+            enabled: 是否启用
+            
+        Returns:
+            是否更新成功
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # 构建动态更新语句
+            updates = []
+            params = []
+            
+            if name is not None:
+                updates.append("name = ?")
+                params.append(name)
+            if description is not None:
+                updates.append("description = ?")
+                params.append(description)
+            if threshold is not None:
+                updates.append("threshold = ?")
+                params.append(threshold)
+            if enabled is not None:
+                updates.append("enabled = ?")
+                params.append(1 if enabled else 0)
+            
+            if not updates:
+                conn.close()
+                return False
+            
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            params.append(rule_id)
+            
+            query = f"UPDATE alert_rules SET {', '.join(updates)} WHERE id = ?"
+            cursor.execute(query, params)
+            
+            conn.commit()
+            success = cursor.rowcount > 0
+            conn.close()
+            return success
+        except Exception as e:
+            print(f"更新告警规则失败: {e}")
+            return False
+    
+    def delete_alert_rule(self, rule_id: int) -> bool:
+        """
+        删除告警规则
+        
+        Args:
+            rule_id: 规则ID
+            
+        Returns:
+            是否删除成功
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute("DELETE FROM alert_rules WHERE id = ?", (rule_id,))
+            
+            conn.commit()
+            success = cursor.rowcount > 0
+            conn.close()
+            return success
+        except Exception as e:
+            print(f"删除告警规则失败: {e}")
+            return False
+    
+    def get_alert_rule_by_id(self, rule_id: int) -> Optional[Dict[str, Any]]:
+        """
+        根据ID获取告警规则
+        
+        Args:
+            rule_id: 规则ID
+            
+        Returns:
+            规则数据，不存在返回None
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT * FROM alert_rules WHERE id = ?", (rule_id,))
+            rule = cursor.fetchone()
+            conn.close()
+            
+            return dict(rule) if rule else None
+        except Exception as e:
+            print(f"获取告警规则失败: {e}")
+            return None
+    
     def close(self):
         """
         关闭数据库连接

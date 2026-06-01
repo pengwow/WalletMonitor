@@ -37,37 +37,62 @@ const Dashboard: React.FC = () => {
   const transactionChart = useRef<echarts.ECharts | null>(null);
   const alertChart = useRef<echarts.ECharts | null>(null);
 
-  // 获取统计数据
   const fetchStats = async () => {
     try {
-      // 模拟数据，实际应该从API获取
+      const [walletsRes, transactionsRes, alertsRes] = await Promise.all([
+        axios.get('/api/wallets').catch(() => ({ data: [] })),
+        axios.get('/api/transactions').catch(() => ({ data: [] })),
+        axios.get('/api/alerts').catch(() => ({ data: [] }))
+      ]);
+
+      const wallets = walletsRes.data;
+      const transactions = transactionsRes.data;
+      const alerts = alertsRes.data;
+
+      const totalValue = wallets.reduce((sum: number, w: any) => sum + (w.balance || 0), 0);
+
       setStats({
-        total_wallets: 5,
-        total_transactions: 120,
-        total_alerts: 15,
-        total_value: 12500.75
+        total_wallets: wallets.length,
+        total_transactions: transactions.length,
+        total_alerts: alerts.length,
+        total_value: totalValue
       });
 
-      // 模拟资产分布数据
-      setAssetDistribution({
-        ethereum: 6500.50,
-        bsc: 3200.25,
-        polygon: 1800.00,
-        solana: 1000.00
+      const assetByChain: Record<string, number> = {};
+      wallets.forEach((w: any) => {
+        const chain = w.chain || 'unknown';
+        assetByChain[chain] = (assetByChain[chain] || 0) + (w.balance || 0);
       });
+      setAssetDistribution(assetByChain);
 
-      // 模拟交易趋势数据
+      const txByDay: Record<string, number> = {};
+      const now = Date.now();
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now - i * 86400000);
+        const key = `${date.getMonth() + 1}/${date.getDate()}`;
+        txByDay[key] = 0;
+      }
+      transactions.forEach((tx: any) => {
+        if (tx.timestamp) {
+          const date = new Date(tx.timestamp * 1000);
+          const key = `${date.getMonth() + 1}/${date.getDate()}`;
+          if (key in txByDay) {
+            txByDay[key]++;
+          }
+        }
+      });
       setTransactionTrends({
-        dates: ['1月1日', '1月2日', '1月3日', '1月4日', '1月5日', '1月6日', '1月7日'],
-        counts: [12, 19, 15, 25, 18, 22, 28]
+        dates: Object.keys(txByDay),
+        counts: Object.values(txByDay)
       });
 
-      // 模拟告警统计数据
-      setAlertStats({
-        low: 8,
-        medium: 5,
-        high: 2
+      const alertCounts = { low: 0, medium: 0, high: 0 };
+      alerts.forEach((a: any) => {
+        if (a.risk_level in alertCounts) {
+          alertCounts[a.risk_level as keyof typeof alertCounts]++;
+        }
       });
+      setAlertStats(alertCounts);
 
       setLoading(false);
     } catch (error) {

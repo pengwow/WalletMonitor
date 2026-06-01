@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
-// 区块链交互hook
 export const useBlockchain = (chain: string) => {
   const [blockNumber, setBlockNumber] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
@@ -10,12 +10,9 @@ export const useBlockchain = (chain: string) => {
     const fetchBlockNumber = async () => {
       setLoading(true);
       try {
-        // 这里应该调用后端API获取区块号
-        // 暂时使用模拟数据
-        setTimeout(() => {
-          setBlockNumber(1000000);
-          setLoading(false);
-        }, 1000);
+        const response = await axios.get(`/api/transactions/stats/summary`);
+        setBlockNumber(response.data.total_transactions || 0);
+        setLoading(false);
       } catch (err) {
         setError('获取区块号失败');
         setLoading(false);
@@ -32,7 +29,6 @@ export const useBlockchain = (chain: string) => {
   };
 };
 
-// 钱包余额hook
 export const useWalletBalance = (address: string, chain: string) => {
   const [balance, setBalance] = useState<string>('0');
   const [loading, setLoading] = useState<boolean>(false);
@@ -44,12 +40,10 @@ export const useWalletBalance = (address: string, chain: string) => {
 
       setLoading(true);
       try {
-        // 这里应该调用后端API获取钱包余额
-        // 暂时使用模拟数据
-        setTimeout(() => {
-          setBalance('1.23');
-          setLoading(false);
-        }, 1000);
+        const wallets = await axios.get('/api/wallets');
+        const wallet = wallets.data.find((w: any) => w.address === address && w.chain === chain);
+        setBalance(wallet?.balance?.toString() || '0');
+        setLoading(false);
       } catch (err) {
         setError('获取余额失败');
         setLoading(false);

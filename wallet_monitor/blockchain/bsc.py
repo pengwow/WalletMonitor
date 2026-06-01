@@ -109,15 +109,18 @@ class BSCClient:
         return result.get("result", {})
     
     def watch_address(self, address: str, callback) -> None:
-        """监听地址交易
+        """
+        监听地址交易
         
         Args:
             address: BSC地址
             callback: 回调函数，接收交易信息
         """
-        # 这里实现轮询监听，实际生产环境可以使用WebSocket或事件订阅
-        # 简化版实现，仅作示例
-        pass
+        from .event_listener import get_global_listener
+        listener = get_global_listener(self)
+        listener.watch_address(address, callback)
+        if not listener.is_running:
+            listener.start()
 
 # 示例用法
 if __name__ == "__main__":
