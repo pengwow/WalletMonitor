@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 
 from ..data.storage import DataStorage
 from ..data.analyzer import DataAnalyzer
+from .middleware import PaginatedResponse, paginate, require_auth
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -69,28 +70,34 @@ class AlertRuleResponse(BaseModel):
     updated_at: str
 
 
-@router.get("/", response_model=List[AlertResponse])
+@router.get("/", response_model=PaginatedResponse[AlertResponse])
 async def get_alerts(
     wallet_address: Optional[str] = Query(None, description="钱包地址"),
     chain: Optional[str] = Query(None, description="区块链类型"),
-    limit: int = Query(100, description="返回数量限制")
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    _auth: dict = require_auth,
 ):
     """
-    获取告警列表
+    获取告警列表（分页）
     """
     storage = _get_storage()
     try:
-        # 获取告警列表
-        alerts = storage.get_alerts(
+        # 获取全部告警（用于分页计数）
+        all_alerts = storage.get_alerts(
             wallet_address=wallet_address,
             chain=chain,
-            limit=limit
         )
+        total = len(all_alerts)
+
+        # 切片获取当前页
+        offset = (page - 1) * page_size
+        page_alerts = all_alerts[offset : offset + page_size]
 
         # 构建响应
         responses = []
-        for alert in alerts:
-            response = AlertResponse(
+        for alert in page_alerts:
+            responses.append(AlertResponse(
                 id=alert["id"],
                 wallet_address=alert["wallet_address"],
                 chain=alert["chain"],
@@ -100,11 +107,12 @@ async def get_alerts(
                 transaction_hash=alert["transaction_hash"],
                 status=alert["status"],
                 created_at=alert["created_at"],
-                resolved_at=alert["resolved_at"]
-            )
-            responses.append(response)
+                resolved_at=alert["resolved_at"],
+            ))
 
-        return responses
+        return paginate(responses, total, page, page_size)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取告警列表失败: {str(e)}")
 

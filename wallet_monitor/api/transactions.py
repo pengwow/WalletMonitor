@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 
@@ -6,6 +6,7 @@ from ..data.storage import DataStorage
 from ..data.processor import DataProcessor
 from ..data.analyzer import DataAnalyzer
 from ..blockchain.factory import BlockchainFactory
+from .middleware import PaginatedResponse, paginate, require_auth
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -65,29 +66,34 @@ class TransactionFilter(BaseModel):
     risk_level: Optional[str] = None
 
 
-@router.get("/", response_model=List[TransactionResponse])
+@router.get("/", response_model=PaginatedResponse[TransactionResponse])
 async def get_transactions(
     wallet_address: Optional[str] = Query(None, description="钱包地址"),
     chain: Optional[str] = Query(None, description="区块链类型"),
-    limit: int = Query(100, description="返回数量限制"),
-    offset: int = Query(0, description="偏移量")
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    _auth: dict = require_auth,
 ):
     """
-    获取交易列表
+    获取交易列表（分页）
     """
     storage = _get_storage()
     try:
-        # 获取交易列表
-        transactions = storage.get_transactions(
+        # 获取全部交易（用于分页计数）
+        all_transactions = storage.get_transactions(
             wallet_address=wallet_address,
             chain=chain,
-            limit=limit
         )
+        total = len(all_transactions)
+
+        # 切片获取当前页
+        offset = (page - 1) * page_size
+        page_transactions = all_transactions[offset : offset + page_size]
 
         # 构建响应
         responses = []
-        for tx in transactions:
-            response = TransactionResponse(
+        for tx in page_transactions:
+            responses.append(TransactionResponse(
                 id=tx["id"],
                 hash=tx["hash"],
                 wallet_address=tx["wallet_address"],
@@ -106,11 +112,12 @@ async def get_transactions(
                 contract_address=tx["contract_address"],
                 anomaly_score=tx["anomaly_score"],
                 risk_level=tx["risk_level"],
-                created_at=tx["created_at"]
-            )
-            responses.append(response)
+                created_at=tx["created_at"],
+            ))
 
-        return responses
+        return paginate(responses, total, page, page_size)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取交易列表失败: {str(e)}")
 

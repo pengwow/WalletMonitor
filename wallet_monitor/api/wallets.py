@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 import logging
@@ -7,6 +7,7 @@ import traceback
 from ..blockchain.factory import BlockchainFactory
 from ..data.storage import DataStorage
 from ..data.processor import DataProcessor
+from .middleware import PaginatedResponse, paginate, require_auth
 
 logger = logging.getLogger(__name__)
 
@@ -132,23 +133,31 @@ async def create_wallet(wallet: WalletCreate):
         raise HTTPException(status_code=500, detail=f"创建钱包失败: {str(e)}")
 
 
-@router.get("/", response_model=List[WalletResponse])
-async def get_wallets(chain: Optional[str] = None):
+@router.get("/", response_model=PaginatedResponse[WalletResponse])
+async def get_wallets(
+    chain: Optional[str] = None,
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    _auth: dict = require_auth,
+):
     """
-    获取钱包列表
+    获取钱包列表（分页）
     """
     storage = _get_storage()
     try:
-        # 获取钱包列表
-        wallets = storage.get_wallets(chain=chain)
+        # 获取全部钱包（用于分页计数）
+        all_wallets = storage.get_wallets(chain=chain)
+        total = len(all_wallets)
+
+        # 切片获取当前页
+        offset = (page - 1) * page_size
+        page_wallets = all_wallets[offset : offset + page_size]
 
         # 构建响应
         responses = []
-        for wallet in wallets:
-            # 安全获取余额
+        for wallet in page_wallets:
             balance = _get_balance_safe(wallet["chain"], wallet["address"])
-
-            response = WalletResponse(
+            responses.append(WalletResponse(
                 id=wallet["id"],
                 address=wallet["address"],
                 chain=wallet["chain"],
@@ -157,13 +166,14 @@ async def get_wallets(chain: Optional[str] = None):
                 is_active=bool(wallet["is_active"]),
                 created_at=wallet["created_at"],
                 updated_at=wallet["updated_at"],
-                balance=balance
-            )
-            responses.append(response)
+                balance=balance,
+            ))
 
-        return responses
+        return paginate(responses, total, page, page_size)
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"获取钱包列表异常: {traceback.format_exc()}")
+        logger.error("获取钱包列表异常: %s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"获取钱包列表失败: {str(e)}")
 
 
