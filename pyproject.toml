@@ -13,6 +13,7 @@ dependencies = [
 
 [project.scripts]
 wallet-monitor = "run:main"
+wallet-cli = "run_cli:main"
 
 [build-system]
 requires = ["setuptools", "wheel"]
