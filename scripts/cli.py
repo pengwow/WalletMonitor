@@ -43,17 +43,17 @@ from rich import box
 # ---------------------------------------------------------------------------
 console = Console()
 app = typer.Typer(
-    help="WalletMonitor – multi-chain wallet tracking, tx monitoring & whale alerts.",
+    help="WalletMonitor – 多链钱包监控、交易追踪与巨鲸告警",
     no_args_is_help=True,
     add_completion=False,
 )
 
 # Sub-command groups
-wallet_app = typer.Typer(help="Manage watched wallets.", no_args_is_help=True)
-tx_app = typer.Typer(help="Query and sync transactions.", no_args_is_help=True)
-alert_app = typer.Typer(help="Manage alerts and alert rules.", no_args_is_help=True)
-alert_rules_app = typer.Typer(help="Manage alert rules.", no_args_is_help=True)
-monitor_app = typer.Typer(help="Whale / market monitoring (Hyperliquid).", no_args_is_help=True)
+wallet_app = typer.Typer(help="管理监控钱包", no_args_is_help=True)
+tx_app = typer.Typer(help="查询和同步交易", no_args_is_help=True)
+alert_app = typer.Typer(help="管理告警和告警规则", no_args_is_help=True)
+alert_rules_app = typer.Typer(help="管理告警规则", no_args_is_help=True)
+monitor_app = typer.Typer(help="巨鲸/市场监控 (Hyperliquid)", no_args_is_help=True)
 
 app.add_typer(wallet_app, name="wallet")
 app.add_typer(tx_app, name="tx")
@@ -90,12 +90,12 @@ def _risk_style(level: str):
 
 @wallet_app.command("add")
 def wallet_add(
-    address: str = typer.Argument(..., help="Wallet address to track."),
-    chain: str = typer.Argument(..., help="Blockchain (ethereum, bsc, polygon, solana)."),
-    name: Optional[str] = typer.Option(None, "--name", "-n", help="Friendly name for the wallet."),
-    desc: Optional[str] = typer.Option(None, "--desc", "-d", help="Description / notes."),
+    address: str = typer.Argument(..., help="要监控的钱包地址"),
+    chain: str = typer.Argument(..., help="区块链类型 (ethereum, bsc, polygon, solana)"),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="钱包名称"),
+    desc: Optional[str] = typer.Option(None, "--desc", "-d", help="描述/备注"),
 ):
-    """Add a wallet to the watch list."""
+    """添加钱包到监控列表."""
     storage = _get_storage()
     ok = storage.add_wallet(address=address, chain=chain.lower(), name=name, description=desc)
     if ok:
@@ -107,10 +107,10 @@ def wallet_add(
 
 @wallet_app.command("list")
 def wallet_list(
-    chain: Optional[str] = typer.Option(None, "--chain", "-c", help="Filter by chain."),
-    as_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON."),
+    chain: Optional[str] = typer.Option(None, "--chain", "-c", help="按链筛选"),
+    as_json: bool = typer.Option(False, "--json", "-j", help="以 JSON 格式输出"),
 ):
-    """List all watched wallets."""
+    """列出所有监控钱包."""
     storage = _get_storage()
     wallets = storage.get_wallets(chain=chain)
     if as_json:
@@ -141,9 +141,9 @@ def wallet_list(
 
 @wallet_app.command("remove")
 def wallet_remove(
-    id: int = typer.Argument(..., help="Wallet ID to deactivate."),
+    id: int = typer.Argument(..., help="要停用的钱包 ID"),
 ):
-    """Soft-delete (deactivate) a watched wallet."""
+    """停用（软删除）监控钱包."""
     storage = _get_storage()
     ok = storage.delete_wallet(id)
     if ok:
@@ -155,10 +155,10 @@ def wallet_remove(
 
 @wallet_app.command("balance")
 def wallet_balance(
-    address: str = typer.Argument(..., help="Wallet address."),
-    chain: str = typer.Argument(..., help="Blockchain name."),
+    address: str = typer.Argument(..., help="钱包地址"),
+    chain: str = typer.Argument(..., help="区块链名称"),
 ):
-    """Fetch the native-token balance for a wallet."""
+    """查询钱包原生代币余额."""
     from wallet_monitor.blockchain.factory import BlockchainFactory
     client = BlockchainFactory.create_blockchain(chain.lower())
     if client is None:
@@ -184,12 +184,12 @@ def wallet_balance(
 
 @tx_app.command("list")
 def tx_list(
-    wallet: Optional[str] = typer.Option(None, "--wallet", "-w", help="Filter by wallet address."),
-    chain: Optional[str] = typer.Option(None, "--chain", "-c", help="Filter by chain."),
-    limit: int = typer.Option(50, "--limit", "-l", help="Max rows to return."),
-    as_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON."),
+    wallet: Optional[str] = typer.Option(None, "--wallet", "-w", help="按钱包地址筛选"),
+    chain: Optional[str] = typer.Option(None, "--chain", "-c", help="按链筛选"),
+    limit: int = typer.Option(50, "--limit", "-l", help="返回最大行数"),
+    as_json: bool = typer.Option(False, "--json", "-j", help="以 JSON 格式输出"),
 ):
-    """List stored transactions."""
+    """列出已存储的交易."""
     storage = _get_storage()
     txs = storage.get_transactions(wallet_address=wallet, chain=chain, limit=limit)
     if as_json:
@@ -225,11 +225,11 @@ def tx_list(
 
 @tx_app.command("sync")
 def tx_sync(
-    address: str = typer.Argument(..., help="Wallet address to sync."),
-    chain: str = typer.Argument(..., help="Blockchain name."),
-    limit: int = typer.Option(50, "--limit", "-l", help="Max transactions to fetch."),
+    address: str = typer.Argument(..., help="要同步的钱包地址"),
+    chain: str = typer.Argument(..., help="区块链名称"),
+    limit: int = typer.Option(50, "--limit", "-l", help="获取最大交易数"),
 ):
-    """Fetch recent transactions from the chain and store them locally."""
+    """从链上获取最近交易并存储到本地."""
     from wallet_monitor.blockchain.factory import BlockchainFactory
     storage = _get_storage()
     client = BlockchainFactory.create_blockchain(chain.lower())
@@ -265,9 +265,9 @@ def tx_sync(
 
 @tx_app.command("show")
 def tx_show(
-    hash: str = typer.Argument(..., help="Transaction hash."),
+    hash: str = typer.Argument(..., help="交易哈希"),
 ):
-    """Show details for a single transaction from the local DB."""
+    """从本地数据库查看单笔交易详情."""
     storage = _get_storage()
     txs = storage.get_transactions(limit=99999)
     tx = next((t for t in txs if t.get("hash") == hash), None)
@@ -286,11 +286,11 @@ def tx_show(
 
 @alert_app.command("list")
 def alert_list(
-    wallet: Optional[str] = typer.Option(None, "--wallet", "-w", help="Filter by wallet address."),
-    status: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by status (pending, resolved)."),
-    as_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON."),
+    wallet: Optional[str] = typer.Option(None, "--wallet", "-w", help="按钱包地址筛选"),
+    status: Optional[str] = typer.Option(None, "--status", "-s", help="按状态筛选 (pending, resolved)"),
+    as_json: bool = typer.Option(False, "--json", "-j", help="以 JSON 格式输出"),
 ):
-    """List alerts."""
+    """列出告警."""
     storage = _get_storage()
     alerts = storage.get_alerts(wallet_address=wallet, limit=200)
     if status:
@@ -330,9 +330,9 @@ def alert_list(
 
 @alert_app.command("resolve")
 def alert_resolve(
-    id: int = typer.Argument(..., help="Alert ID to resolve."),
+    id: int = typer.Argument(..., help="要解决的告警 ID"),
 ):
-    """Mark an alert as resolved."""
+    """将告警标记为已解决."""
     storage = _get_storage()
     ok = storage.resolve_alert(id)
     if ok:
@@ -346,9 +346,9 @@ def alert_resolve(
 
 @alert_rules_app.command("list")
 def alert_rules_list(
-    as_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON."),
+    as_json: bool = typer.Option(False, "--json", "-j", help="以 JSON 格式输出"),
 ):
-    """List all alert rules."""
+    """列出所有告警规则."""
     storage = _get_storage()
     rules = storage.get_alert_rules(enabled_only=False)
     if as_json:
@@ -381,12 +381,12 @@ def alert_rules_list(
 
 @alert_rules_app.command("add")
 def alert_rules_add(
-    name: str = typer.Argument(..., help="Rule name."),
-    type: str = typer.Argument(..., help="Rule type (transaction, balance, contract, anomaly)."),
-    threshold: Optional[float] = typer.Option(None, "--threshold", "-t", help="Numeric threshold."),
-    desc: Optional[str] = typer.Option(None, "--desc", "-d", help="Description."),
+    name: str = typer.Argument(..., help="规则名称"),
+    type: str = typer.Argument(..., help="规则类型 (transaction, balance, contract, anomaly)"),
+    threshold: Optional[float] = typer.Option(None, "--threshold", "-t", help="数值阈值"),
+    desc: Optional[str] = typer.Option(None, "--desc", "-d", help="描述"),
 ):
-    """Add a new alert rule."""
+    """添加新告警规则."""
     storage = _get_storage()
     rule = {
         "name": name,
@@ -405,9 +405,9 @@ def alert_rules_add(
 
 @alert_rules_app.command("delete")
 def alert_rules_delete(
-    id: int = typer.Argument(..., help="Rule ID to delete."),
+    id: int = typer.Argument(..., help="要删除的规则 ID"),
 ):
-    """Delete an alert rule."""
+    """删除告警规则."""
     storage = _get_storage()
     ok = storage.delete_alert_rule(id)
     if ok:
@@ -423,10 +423,10 @@ def alert_rules_delete(
 
 @monitor_app.command("start")
 def monitor_start(
-    coin: str = typer.Option(..., "--coin", "-c", help="Coin symbol (BTC, ETH, …)."),
-    interval: int = typer.Option(30, "--interval", "-i", help="Refresh interval in seconds."),
+    coin: str = typer.Option(..., "--coin", "-c", help="币种符号 (BTC, ETH, …)"),
+    interval: int = typer.Option(30, "--interval", "-i", help="刷新间隔（秒）"),
 ):
-    """Start a whale-monitor session (Hyperliquid) in the terminal."""
+    """在终端启动巨鲸监控 (Hyperliquid)."""
     from wallet_monitor.whale_monitor.monitor import WhaleMonitor
     from wallet_monitor.whale_monitor.formatter import format_usd, format_usd_unsigned, get_risk_summary
 
@@ -519,10 +519,10 @@ def monitor_coins():
 
 @app.command()
 def serve(
-    host: str = typer.Option("0.0.0.0", "--host", "-h", help="Bind host."),
-    port: int = typer.Option(8000, "--port", "-p", help="Bind port."),
+    host: str = typer.Option("0.0.0.0", "--host", "-h", help="绑定主机地址"),
+    port: int = typer.Option(8000, "--port", "-p", help="绑定端口"),
 ):
-    """Start the WalletMonitor FastAPI server."""
+    """启动 WalletMonitor API 服务器."""
     console.print(Panel(
         f"[bold cyan]Starting WalletMonitor API server[/bold cyan]\n"
         f"  Host: [yellow]{host}[/yellow]  Port: [yellow]{port}[/yellow]\n"
@@ -550,9 +550,9 @@ def serve(
 
 @app.command()
 def status(
-    as_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON."),
+    as_json: bool = typer.Option(False, "--json", "-j", help="以 JSON 格式输出"),
 ):
-    """Show WalletMonitor system status."""
+    """查看 WalletMonitor 系统状态."""
     storage = _get_storage()
     wallets = storage.get_wallets()
     alerts = storage.get_alerts(limit=9999)
@@ -612,10 +612,10 @@ def status(
 
 @app.command()
 def export(
-    fmt: str = typer.Option("json", "--format", "-f", help="Export format: json or csv."),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path (default: stdout)."),
+    fmt: str = typer.Option("json", "--format", "-f", help="导出格式: json 或 csv"),
+    output: Optional[str] = typer.Option(None, "--output", "-o", help="输出文件路径（默认: stdout）"),
 ):
-    """Export all wallets, transactions, and alerts."""
+    """导出所有钱包、交易和告警数据."""
     storage = _get_storage()
     data = {
         "wallets": storage.get_wallets(),
